@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>View Records - Utsav Cart</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 40px;
+      background-color: #f9f9f9;
+    }
+
+    .top-image {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .top-image img {
+      max-width: 200px;
+      height: auto;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      text-align: center;
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    .total {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-image">
+    <img src="utsav1.png" alt="Utsav Logo">
+  </div>
+
+  <div class="container">
+    <h2>🔍 Search Saved Records</h2>
+
+    <!-- Manual Search Input -->
+    <input type="text" id="ownerSearch" placeholder="Type or select factory/owner name" list="ownerSuggestions" oninput="loadCartByInput()">
+    <datalist id="ownerSuggestions"></datalist>
+
+    <!-- Cart Table -->
+    <table id="viewTable">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Price</th>
+          <th>Quantity</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Total -->
+    <div class="total" id="total">Total: 0.00</div>
+  </div>
+
+  <script>
+    // Load datalist suggestions from localStorage
+    function loadOwners() {
+      const dataList = document.getElementById('ownerSuggestions');
+      dataList.innerHTML = '';
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        try {
+          const value = JSON.parse(localStorage.getItem(key));
+          if (!value || !value.cart) continue; // skip unrelated entries
+
+          const option = document.createElement('option');
+          option.value = key;
+          dataList.appendChild(option);
+        } catch (err) {
+          continue;
+        }
+      }
+    }
+
+    // Load cart from input search
+    function loadCartByInput() {
+      const ownerKey = document.getElementById('ownerSearch').value.trim();
+      const data = JSON.parse(localStorage.getItem(ownerKey));
+      const tbody = document.querySelector('#viewTable tbody');
+      tbody.innerHTML = '';
+
+      if (!data || !data.cart || !Array.isArray(data.cart)) {
+        document.getElementById("total").innerText = "Total: 0.00";
+        return;
+      }
+
+      let total = 0;
+      data.cart.forEach(item => {
+        const subtotal = item.price * item.qty;
+        total += subtotal;
+        const row = `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.price}</td>
+            <td>${item.qty}</td>
+            <td>${subtotal.toFixed(2)}</td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+
+      document.getElementById("total").innerText = `Total: ${total.toFixed(2)}`;
+    }
+
+    window.onload = loadOwners;
+  </script>
+</body>
+</html>

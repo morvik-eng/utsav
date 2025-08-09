@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shopping Cart with Smart Input</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+
+        .top-image {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .top-image img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        input, button {
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 200px;
+        }
+
+        #ownerName {
+            width: 300px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: center;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .total {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+
+        .print-btn {
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+
+        .add-section {
+            margin-bottom: 30px;
+        }
+
+        .print-owner-name {
+            display: none;
+        }
+
+        @media print {
+            body {
+                background-color: #fff;
+                margin: 0;
+            }
+
+            .no-print,
+            .add-section,
+            input,
+            button,
+            label[for="ownerName"],
+            #ownerName,
+            .container > h2 {
+                display: none !important;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .print-owner-name {
+                display: block !important;
+                font-size: 20px;
+                font-weight: bold;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+
+            td input {
+                display: none;
+            }
+
+            td:has(input)::after {
+                content: attr(data-print);
+                display: block;
+            }
+
+            .top-image {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+
+            .top-image img {
+                display: inline-block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Centered Image -->
+    <div class="top-image">
+        <img src="utsav1.png" alt="Utsav Image">
+    </div>
+
+    <div class="container">
+
+        <!-- Owner/Factory Name -->
+        <label for="ownerName"><strong>Factory/Owner Name:</strong></label><br>
+        <input type="text" id="ownerName" placeholder="Enter factory or owner name"><br><br>
+
+        <!-- Add Item Section -->
+        <div class="add-section">
+            <h2>Add Item</h2>
+            <input type="text" id="itemName" placeholder="Enter item name" list="suggestions">
+            <datalist id="suggestions"></datalist>
+            <br>
+            Price: <input type="number" id="itemPrice" value="10" min="0">
+            Quantity: <input type="number" id="itemQty" value="1" min="1">
+            <button onclick="addToCart()">Add to Cart</button>
+        </div>
+
+        <!-- Cart Table -->
+        <h2>Cart</h2>
+        <div id="ownerPrintName" class="print-owner-name"></div>
+
+        <table id="cartTable">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Subtotal</th>
+                    <th class="no-print">Remove</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <!-- Total -->
+        <div class="total" id="total">Total: 0.00</div>
+
+        <!-- Buttons -->
+        <button class="print-btn no-print" onclick="printInvoice()">🖨️ Print Invoice</button>
+        <button class="print-btn no-print" onclick="saveEntry()">💾 Save Entry</button>
+    </div>
+
+    <script>
+        let cart = [];
+        let itemSuggestions = new Set();
+
+        window.onload = function () {
+            const savedOwnerName = localStorage.getItem("ownerName");
+            if (savedOwnerName) {
+                document.getElementById("ownerName").value = savedOwnerName;
+            }
+            updateSuggestions();
+        };
+
+        document.getElementById("ownerName").addEventListener("input", function () {
+            localStorage.setItem("ownerName", this.value);
+        });
+
+        function updateSuggestions() {
+            const dataList = document.getElementById("suggestions");
+            dataList.innerHTML = '';
+            itemSuggestions.forEach(item => {
+                let option = document.createElement("option");
+                option.value = item;
+                dataList.appendChild(option);
+            });
+        }
+
+        function addToCart() {
+            const itemInput = document.getElementById("itemName");
+            const name = itemInput.value.trim();
+            const price = parseFloat(document.getElementById("itemPrice").value);
+            const qty = parseInt(document.getElementById("itemQty").value);
+
+            if (name === '' || isNaN(price) || isNaN(qty) || qty <= 0 || price < 0) {
+                alert("Please fill in valid item name, price and quantity.");
+                return;
+            }
+
+            itemSuggestions.add(name);
+            updateSuggestions();
+
+            const existing = cart.find(i => i.name.toLowerCase() === name.toLowerCase());
+            if (existing) {
+                existing.qty += qty;
+                existing.price = price;
+            } else {
+                cart.push({ name: name, price: price, qty: qty });
+            }
+
+            itemInput.value = '';
+            renderCart();
+        }
+
+        function renderCart() {
+            const tbody = document.querySelector('#cartTable tbody');
+            tbody.innerHTML = '';
+            let total = 0;
+
+            cart.forEach((item, idx) => {
+                const subtotal = item.price * item.qty;
+                total += subtotal;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td data-print="${item.price}">
+                            <input type="number" value="${item.price}" min="0" onchange="updatePrice(${idx}, this.value)">
+                        </td>
+                        <td data-print="${item.qty}">
+                            <input type="number" value="${item.qty}" min="1" onchange="updateQty(${idx}, this.value)">
+                        </td>
+                        <td>${subtotal.toFixed(2)}</td>
+                        <td class="no-print"><button onclick="removeItem(${idx})">Delete</button></td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById("total").innerText = "Total: " + total.toFixed(2);
+        }
+
+        function updatePrice(idx, val) {
+            const price = parseFloat(val);
+            if (!isNaN(price) && price >= 0) {
+                cart[idx].price = price;
+                renderCart();
+            }
+        }
+
+        function updateQty(idx, val) {
+            const qty = parseInt(val);
+            if (!isNaN(qty) && qty > 0) {
+                cart[idx].qty = qty;
+                renderCart();
+            }
+        }
+
+        function removeItem(idx) {
+            cart.splice(idx, 1);
+            renderCart();
+        }
+
+        function printInvoice() {
+            const owner = document.getElementById("ownerName").value.trim();
+            const ownerDiv = document.getElementById("ownerPrintName");
+            ownerDiv.innerText = owner ? "Factory/Owner: " + owner : "";
+            window.print();
+        }
+
+        function saveEntry() {
+            const owner = document.getElementById("ownerName").value.trim();
+            if (!owner) {
+                alert("Please enter the factory/owner name before saving.");
+                return;
+            }
+            if (cart.length === 0) {
+                alert("Cart is empty. Add items before saving.");
+                return;
+            }
+
+            const saveData = {
+                owner: owner,
+                cart: cart
+            };
+
+            localStorage.setItem(owner, JSON.stringify(saveData));
+            alert("Cart saved successfully for " + owner);
+        }
+    </script>
+</body>
+</html>
